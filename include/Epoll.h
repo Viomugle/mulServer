@@ -2,6 +2,7 @@
 #include <sys/epoll.h>
 #include <vector>
 #include <unistd.h>
+#include <errno.h>
 #define MAX_EVENTS 10000
 class Epoll
 {
