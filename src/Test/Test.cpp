@@ -5,35 +5,34 @@
 #include <numeric>
 #include "ThreadPool.h"
 #include <mutex>
-#include "spdlog/spdlog.h"
 #include <hash_fun.h>
 #include <pthread.h>    
 #include <future>
-#define SL std::cout << __LINE__ << std::endl;
-std::mutex mtx;
+#include "ReadBuffer.h"
+#include "HTTP.h"
+#include <ranges>
 
-void PrintThreadId()
-{
-        std::lock_guard<std::mutex> lock(mtx);
-        printf("child thread id: %d\n", std::this_thread::get_id());
-        fflush(stdout);
-        return ;
-}
+#include <unordered_map>
 
+
+using namespace std;
+string mess="GET /index.html HTTP/1.1\r\nHost: www.example.com\r\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8\r\nAccept-Encoding: gzip, deflate\r\nConnection: keep-alive\r\n\r\n";
 int main()
 {
-    auto max = std::thread::hardware_concurrency();
-    ThreadPool pool(max);
-    std::thread poolThread(&ThreadPool::start, &pool);
-    while (getchar() != 'q')
+    ReadBuffer rb(mess);
+    rb.append("/*/*append at end/*/*");
+    HTTP http;
+    auto res=http.parseHTTP(rb);
+    if(res.has_value())
     {
-        auto task = []()
+        for(auto &i:*res)
         {
-            PrintThreadId();
-        };
-        pool.addTask(task);
+            cout<<i.first<<":    :"<<i.second<<"/-/"<<endl;
+        }
     }
-    pool.willStop = true;
-    poolThread.join();
+    else
+    {
+        cout<<"parse failed"<<endl;
+    }
     return 0;
 }

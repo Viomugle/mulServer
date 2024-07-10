@@ -8,7 +8,10 @@
 #include <errno.h>
 #include <iostream>
 #include <thread>
-
+#include "HTTP.h"
+#include <format>
+#include <filesystem>
+#include <sys/sendfile.h>
 Socket::Socket()
 {
     fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -21,7 +24,6 @@ Socket::Socket(int _fd) : fd(_fd)
 
 Socket::~Socket()
 {
-    printf("socket des invoke\n");
     if (fd != -1)
     {
         close(fd);
@@ -58,7 +60,6 @@ int Socket::accept(InetAddress *_addr)
             clnt_sockfd = ::accept(fd, (sockaddr *)&addr, &addr_len);
             if (clnt_sockfd == -1 && ((errno == EAGAIN) || (errno == EWOULDBLOCK)))
             {
-                // printf("no connection yet\n");
                 continue;
             }
             else if (clnt_sockfd == -1)
@@ -82,7 +83,6 @@ int Socket::accept(InetAddress *_addr)
 
 void Socket::connect(InetAddress *_addr)
 {
-    // for client socket
     struct sockaddr_in addr = _addr->getAddr();
     if (fcntl(fd, F_GETFL) & O_NONBLOCK)
     {
@@ -153,7 +153,6 @@ uint16_t InetAddress::getPort()
 void Socket::closeEvent()
 {
     epollDel();
-    printf("close triggered\n");
     if (fd != -1)
     {
         close(fd);
@@ -178,6 +177,41 @@ void Socket::readEvent()
         else if (n > 0)
         {
             _buf.append(std::string_view(mess));
+            HTTP http;
+            auto res = http.parseHTTP(_buf);
+            if (res.has_value())
+            {
+                if (res.value()["method"] == "GET")
+                {
+                    
+                    write(fd, "HTTP/1.1 200 OK\r\n\r\n", strlen("HTTP/1.1 200 OK\r\n\r\n"));
+                    
+                    std::string html("./demo.html");
+                    std::filesystem::path p(html);
+
+                    if (std::filesystem::exists(p))
+                    {
+                        auto len = std::filesystem::file_size(p);
+                        auto str = std::format("Content-Length: {}", len);
+                        int f = open(html.c_str(),O_RDONLY);
+                        sendfile(fd, f, 0, len);
+                        close(f);
+                    }
+                    else
+                    {
+                        write(fd, "<html><body><h1>404 Not Found</h1></body></html>", strlen("<html><body><h1>404 Not Found</h1></body></html>"));
+                    }
+                    
+                }
+                else
+                {
+                    write(fd, "HTTP/1.1 405 Method Not Allowed\r\n\r\n", strlen("HTTP/1.1 405 Method Not Allowed\r\n\r\n"));
+                }
+            }
+            else
+            {
+                write(fd, "HTTP/1.1 400 Bad Request\r\n\r\n", strlen("HTTP/1.1 400 Bad Request\r\n\r\n"));
+            }
         }
         else if (n == -1)
         {
@@ -196,5 +230,4 @@ void Socket::readEvent()
             }
         }
     }
-    printf("Socket read finished!\n");
 }

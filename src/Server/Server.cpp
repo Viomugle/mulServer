@@ -30,7 +30,6 @@ int main(int argc, char **argv)
     ev.data.fd = sock->getFd();
     ev.events = EPOLLIN | EPOLLET;
     epoll_ctl(ep.epfd, EPOLL_CTL_ADD, sock->getFd(), &ev);
-    printf("epfd is: %d\n",ep.epfd);
     while (true)
     {
         auto revents = ep.getRevents();
@@ -40,7 +39,6 @@ int main(int argc, char **argv)
             {
 
                 auto clnt_fd = sock->accept(addr);
-                printf("new connection in fd: %d\n", clnt_fd);
                 auto clnt_sock = new Socket(clnt_fd);
                 clnt_sock->setnonblocking();
                 clients[clnt_fd] = clnt_sock;
@@ -49,23 +47,19 @@ int main(int argc, char **argv)
                 {
                     ep.removeFd(clnt_fd);
                     auto ptr=clients[clnt_fd];
-                    //delete clients[clnt_fd];
                     clients.erase(clnt_fd);
-                    //delete ptr;
-                    printf("clnt %d close\n", clnt_fd);
                 };
                 clnt_sock->epollDel = closeCb;
             }
             else
             {
-                printf("revents is:%d\n",revent.second);
                 if (revent.second & EPOLLHUP)
                 {
-                    printf("HangUp triggered!");
+                    //printf("EPOLLHUP\n");
                 }
                 else if (revent.second & EPOLLERR)
                 {
-                    printf("Err triggered!");
+                    //printf("EPOLLERR\n");
                 }
                 else
                 {
@@ -76,6 +70,14 @@ int main(int argc, char **argv)
             }
         }
     }
+    for(auto client :clients)
+    {
+        client.second->closeEvent();
+    }
+
+    pool.willStop=true;
+    poolThread.join();
+
 
     return 0;
 }

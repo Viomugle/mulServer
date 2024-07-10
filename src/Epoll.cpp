@@ -27,12 +27,7 @@ void Epoll::addFd(int _fd)
 
 void Epoll::removeFd(int _fd)
 {
-    printf("in removed function epfd is:%d\n",epfd);
     auto res = epoll_ctl(epfd, EPOLL_CTL_DEL, _fd, 0);
-    if (res == 0)
-        printf("res = 0\n");
-    else
-        printf("errno =%d", errno );
 }
 
 std::vector<std::pair<int, uint32_t>> Epoll::getRevents()

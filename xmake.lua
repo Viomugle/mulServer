@@ -6,6 +6,10 @@ target("mulServer")
     set_kind("binary")
     add_files("src/*.cpp")
     add_files("src/Server/Server.cpp")
+target("Test")
+    set_kind("binary")
+    add_files("src/*.cpp")
+    add_files("src/Test/Test.cpp")
 
 --
 -- If you want to known more usage about xmake, please see https://xmake.io

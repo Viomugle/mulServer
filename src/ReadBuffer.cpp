@@ -17,7 +17,7 @@ ReadBuffer::ReadBuffer(int _size)
 }
 ReadBuffer::ReadBuffer(std::string_view _sv)
 {
-    data = (char *)malloc(_sv.size() * 2);
+    data = (char *)malloc(_sv.size() * 2*sizeof(char));
     memset(data, '\0', _sv.size() * 2);
     memcpy(data, _sv.data(), _sv.size());
     size = _sv.size();
@@ -31,13 +31,17 @@ ReadBuffer::~ReadBuffer()
     data = nullptr;
 }
 
+void ReadBuffer::append(const char *_str)
+{
+    append(std::string_view(_str));
+}
+
 void ReadBuffer::append(std::string_view _sv)
 {
-    printf("size is: %d sv.size is: %d cap is: %d\n", size, _sv.size(), capacity);
     if (size + _sv.size() > capacity)
     {
-        auto newdata = (char *)malloc(2 * (size + _sv.size()));
-        memset(newdata, '\0', 2 * (size + _sv.size()));
+        auto newdata = (char *)malloc(sizeof(char)*2 * (size + _sv.size()));
+        memset(newdata, '\0', sizeof(char)*2 * (size + _sv.size()));
         memcpy(newdata, data, size);
         free(data);
         data = newdata;
@@ -49,9 +53,6 @@ void ReadBuffer::append(std::string_view _sv)
         memcpy(data + size, _sv.data(), _sv.size());
         size += _sv.size();
     }
-    printf("size is: %d sv.size is: %d cap is: %d\n", size, _sv.size(), capacity);
-    printf("buf is:\n%s\n", data);
-    printf("thread id is: %d\n", std::this_thread::get_id());
 }
 
 void ReadBuffer::append(std::string _str)
@@ -67,14 +68,30 @@ std::string ReadBuffer::getLine()
 
 char *ReadBuffer::c_str()
 {
-    if(data!=nullptr)
-    return data;
+    if (data != nullptr)
+        return data;
     else
-    tools::assert(true,"trying to get a nullptr");
+        tools::assert(true, "trying to get a nullptr");
 }
 
-int ReadBuffer::findFirst(std::string_view _sv)
+
+
+int ReadBuffer::find(std::string _tok,int _pos)
 {
-    std::string_view sv(data, 0);
-    return sv.find(_sv);
+    return std::string_view(data).find(_tok,_pos);
+}
+
+std::string ReadBuffer::substr(ssize_t _b, ssize_t _len)
+{
+    std::string_view sv(data);
+    return std::string(sv.substr(_b, _len));
+}
+
+void ReadBuffer::removeFront(ssize_t n)
+{
+    tools::assert(n>size,"trying to remove more than size");
+    memmove(data,data+n,size-n);
+    size-=n;
+    memset(data+size,'\0',n);
+
 }

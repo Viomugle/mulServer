@@ -6,7 +6,6 @@
 #include <string_view>
 #include <string>
 #include <new>
-#include "HTTP.h"
 #include <tools.h>
 #include "tools.h"
 #include <thread>
@@ -22,7 +21,10 @@ class ReadBuffer
     std::size_t capacity;
     void append(std::string_view _sv);
     void append(std::string _str);
+    void append(const char* _str);
     std::string getLine();
     char * c_str();
-    int findFirst(std::string_view _sv);
+    std::string substr(ssize_t _b,ssize_t _e);
+    void removeFront(ssize_t n);
+    int find(std::string _tok,int _pos);
 };
