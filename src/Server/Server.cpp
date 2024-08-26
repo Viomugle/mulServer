@@ -18,7 +18,7 @@ int main(int argc, char **argv)
 
     auto max = std::thread::hardware_concurrency();
     ThreadPool pool(max);
-    std::thread poolThread(&ThreadPool::start, &pool);
+    //std::thread poolThread(&ThreadPool::start, &pool);
 
     auto sock = new Socket();
     auto addr = new InetAddress("127.0.0.1", 8000);
@@ -75,8 +75,11 @@ int main(int argc, char **argv)
         client.second->closeEvent();
     }
 
+    pool.close();
+/*
     pool.willStop=true;
     poolThread.join();
+    */
 
 
     return 0;

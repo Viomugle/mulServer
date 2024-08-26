@@ -1,67 +1,71 @@
-#pragma once
+#ifndef LFRINGBUFFER_H
+#define LFRINGBUFFER_H
 #include <atomic>
-template<typename T>
-class LockFreeQueue
-{
-    public:
-        LockFreeQueue(int _size);
-        ~LockFreeQueue();
-        bool push(T);
-        T pop();
-        T* data;
-        int size;
-        std::atomic<int> head;
-        std::atomic<int> tail;
-        std::atomic<int> count;
-        bool isEmpty();
-};
-
-template<typename T>
-LockFreeQueue<T>::~LockFreeQueue()
-{
-    delete[] data;
-}
-
-
-template<typename T>
-bool LockFreeQueue<T>::push(T t)
-{
-    if(count.load()==size)
-    {
-        return false;
-    }
-    data[tail.load()]=t;
-    tail.store((tail.load()+1)%size);
-    count.store(count.load()+1);
-    return true;
-}
-
-template<typename T>
-T LockFreeQueue<T>::pop()
-{
-    if(count.load()==0)
-    {
-        return NULL;
-    }
-    T t=data[head.load()];
-    head.store((head.load()+1)%size);
-    count.store(count.load()-1);
-    return t;
-}
-
+using namespace std;
 template <typename T>
-LockFreeQueue<T>::LockFreeQueue(int _size)
+class lfRingBuffer
 {
-    size=_size;
-    data=new T[size];
-    head.store(0);
-    tail.store(0);
-    count.store(0);
-}
 
+private:
+    atomic<int> head_val = 0;
+    atomic<int> head_olloc = 0;
+    atomic<int> tail_val = 0;
+    atomic<int> tail_alloc = 0;
+    T *buffer;
+    int capacity;
 
-template<typename T>    
-bool LockFreeQueue<T>::isEmpty()
-{
-    return count.load()==0;
-}
+public:
+    lfRingBuffer(int n = 8) : capacity(n)
+    {
+        buffer = new T[n];
+    }
+    ~lfRingBuffer()
+    {
+        delete[] buffer;
+    }
+    bool back(T data)
+    {
+        auto t_alloc = tail_alloc.load();
+        auto h_alloc = head_olloc.load();
+        auto t_val = tail_val.load();
+        auto h_val = head_val.load();
+        do
+        {
+            t_alloc = tail_alloc.load();
+            h_alloc = head_olloc.load();
+            t_val = tail_val.load();
+            h_val = head_val.load();
+            if ((t_alloc + 1) % capacity == h_alloc)
+            {
+                return false;
+            }
+            buffer[t_alloc] = data;
+            tail_val.store(t_alloc);
+        } while (!tail_alloc.compare_exchange_weak(t_alloc, (t_alloc + 1) % capacity));
+        return true;
+    }
+    bool front(T & data)
+    {
+
+        auto t_alloc = tail_alloc.load();
+        auto h_alloc = head_olloc.load();
+        auto t_val = tail_val.load();
+        auto h_val = head_val.load();
+        do
+        {
+            t_alloc = tail_alloc.load();
+            h_alloc = head_olloc.load();
+            t_val = tail_val.load();
+            h_val = head_val.load();
+            if (h_alloc == t_alloc)
+            {
+                return false;
+            } // empty
+            data = buffer[h_val];
+            head_val.store((h_alloc + 1) % capacity);
+
+        } while (head_olloc.compare_exchange_weak(h_alloc, (h_alloc + 1) % capacity)!=true);
+        return true;
+    }
+};
+#endif
