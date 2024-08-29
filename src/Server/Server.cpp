@@ -7,7 +7,7 @@
 #include <map>
 #include "ReadBuffer.h"
 #include <functional>
-#include "ThreadPool.h"
+#include "threadpool.hpp"
 #include <format>
 #include <unordered_map>
 
@@ -17,8 +17,7 @@ int main(int argc, char **argv)
 {
 
     auto max = std::thread::hardware_concurrency();
-    ThreadPool pool(max);
-    //std::thread poolThread(&ThreadPool::start, &pool);
+    threadpool pool(max);
 
     auto sock = new Socket();
     auto addr = new InetAddress("127.0.0.1", 8000);
@@ -28,7 +27,7 @@ int main(int argc, char **argv)
     Epoll ep;
     epoll_event ev;
     ev.data.fd = sock->getFd();
-    ev.events = EPOLLIN | EPOLLET;
+    ev.events = EPOLLET|EPOLLIN|EPOLLERR|EPOLLHUP|EPOLLRDHUP;
     epoll_ctl(ep.epfd, EPOLL_CTL_ADD, sock->getFd(), &ev);
     while (true)
     {
@@ -53,15 +52,21 @@ int main(int argc, char **argv)
             }
             else
             {
+                /*
                 if (revent.second & EPOLLHUP)
                 {
-                    //printf("EPOLLHUP\n");
+                    printf("EPOLLHUP\n");
                 }
-                else if (revent.second & EPOLLERR)
+                 if (revent.second & EPOLLERR)
                 {
-                    //printf("EPOLLERR\n");
+                    printf("EPOLLERR\n");
                 }
-                else
+                if (revent.second & EPOLLRDHUP==EPOLLRDHUP)
+                {
+                    printf("EPOLLRDHUP\n");
+                }
+                */
+                if(revent.second & EPOLLIN)
                 {
                     auto clnt_sock = clients[revent.first];
                     std::function<void()> cb=std::bind(&Socket::readEvent,clnt_sock);

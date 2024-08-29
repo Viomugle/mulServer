@@ -20,8 +20,10 @@ Epoll::~Epoll()
 void Epoll::addFd(int _fd)
 {
     struct epoll_event ev;
-    ev.events = EPOLLET | EPOLLIN | EPOLLERR | EPOLLHUP;
+    ev.events = EPOLLET | EPOLLIN | EPOLLERR | EPOLLHUP | EPOLLRDHUP;
     ev.data.fd = _fd;
+    // ev.data.ptr = nullptr;
+
     epoll_ctl(epfd, EPOLL_CTL_ADD, _fd, &ev);
 }
 

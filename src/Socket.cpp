@@ -184,8 +184,12 @@ void Socket::readEvent()
                 if (res.value()["method"] == "GET")
                 {
                     
-                    write(fd, "HTTP/1.1 200 OK\r\n\r\n", strlen("HTTP/1.1 200 OK\r\n\r\n"));
-                    
+                    auto n=write(fd, "HTTP/1.1 200 OK\r\n\r\n", strlen("HTTP/1.1 200 OK\r\n\r\n"));
+                    if(n==-1){
+                        printf("write error: %s %d\n",__FILE__,__LINE__);
+                        closeEvent();
+                        break;
+                    }
                     std::string html("./demo.html");
                     std::filesystem::path p(html);
 
@@ -194,8 +198,18 @@ void Socket::readEvent()
                         auto len = std::filesystem::file_size(p);
                         auto str = std::format("Content-Length: {}", len);
                         int f = open(html.c_str(),O_RDONLY);
-                        sendfile(fd, f, 0, len);
+                        auto m=sendfile(fd, f, 0, len);
                         close(f);
+                        if(f==-1){
+                            //closeEvent();
+                            printf("openfile error: %s %d\n",__FILE__,__LINE__);
+                            break;
+                        }
+                        if(m==-1){
+                            printf("sendfile error: %s %d\n",__FILE__,__LINE__);
+                            closeEvent();
+                            break;
+                        }
                     }
                     else
                     {
@@ -217,7 +231,8 @@ void Socket::readEvent()
         {
             if (errno == EAGAIN)
             {
-                break;
+                //break;
+                continue;
             }
             else if (errno == EINTR)
             {
