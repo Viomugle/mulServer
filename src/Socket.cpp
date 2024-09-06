@@ -231,8 +231,8 @@ void Socket::readEvent()
         {
             if (errno == EAGAIN)
             {
-                //break;
-                continue;
+                break;
+                //continue;
             }
             else if (errno == EINTR)
             {
@@ -242,6 +242,10 @@ void Socket::readEvent()
             {
                 closeEvent();
                 break;
+            }
+            else if(errno==EWOULDBLOCK)
+            {
+                continue;
             }
         }
     }

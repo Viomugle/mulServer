@@ -36,7 +36,7 @@ int main(int argc, char **argv)
         {
             if (revent.first == sock->getFd())
             {
-
+                cout<<"new connection"<<endl;
                 auto clnt_fd = sock->accept(addr);
                 auto clnt_sock = new Socket(clnt_fd);
                 clnt_sock->setnonblocking();
@@ -52,20 +52,6 @@ int main(int argc, char **argv)
             }
             else
             {
-                /*
-                if (revent.second & EPOLLHUP)
-                {
-                    printf("EPOLLHUP\n");
-                }
-                 if (revent.second & EPOLLERR)
-                {
-                    printf("EPOLLERR\n");
-                }
-                if (revent.second & EPOLLRDHUP==EPOLLRDHUP)
-                {
-                    printf("EPOLLRDHUP\n");
-                }
-                */
                 if(revent.second & EPOLLIN)
                 {
                     auto clnt_sock = clients[revent.first];
@@ -81,11 +67,5 @@ int main(int argc, char **argv)
     }
 
     pool.close();
-/*
-    pool.willStop=true;
-    poolThread.join();
-    */
-
-
     return 0;
 }
